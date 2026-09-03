@@ -29,8 +29,8 @@ Train and deploy a regression model that accepts real-world sensor readings and 
 | Task | Details |
 |---|---|
 | **Primary task** | Regression — predict `Appliances` energy use in Wh |
-| **Secondary task** | Binary classification — identify high-consumption periods |
-| **Reason for secondary task** | The instructor requires Accuracy, Precision, Recall, F1, and ROC-AUC |
+| **High-consumption status** | Threshold-based status derived from the regression prediction |
+| **Threshold** | Loaded from the saved model bundle at runtime |
 
 ---
 
@@ -114,7 +114,7 @@ Plus 4 engineered time features:
 - The `Appliances` target is **right-skewed** (skewness ≈ 3.39): most observations fall in a moderate range (median ≈ 60 Wh), with occasional spikes up to 1080 Wh
 - Average consumption peaks in the **evening hours** (consistent with cooking and other household activities)
 - Consumption is **lower in warmer months** (lower heating demand)
-- Individual feature correlations with the target are weak (< 0.2), suggesting non-linear relationships that benefit from ensemble models
+- Individual feature correlations with the target are weak (< 0.2), indicating that the available variables alone do not strongly explain appliance consumption
 
 ---
 
@@ -167,17 +167,6 @@ Tuned Random Forest with `RandomizedSearchCV` + `TimeSeriesSplit`:
 - Baseline RF RMSE: 148.71 → Tuned RF RMSE: **118.44** (improvement)
 - Despite improvement, Linear Regression still generalizes better on this test period
 
-### Secondary Classification Metrics
-
-Binary task: predict whether consumption exceeds **210 Wh** (90th percentile of training set)
-
-| Metric | Value |
-|---|---|
-| Accuracy | 0.9199 |
-| Precision | 0.2000 |
-| Recall | 0.0032 |
-| F1-score | 0.0063 |
-| ROC-AUC | 0.7336 |
 
 ---
 
@@ -208,6 +197,7 @@ Smart-Energy-AI/
 │   ├── final_model.joblib
 │   └── scaler.joblib
 ├── notebooks/
+│   ├── SMART_ENERGY.ipynb
 │   └── smart_energy_ai.ipynb
 ├── reports/
 ├── src/
@@ -231,27 +221,107 @@ Smart-Energy-AI/
 
 ## Technology Stack
 
+### Backend
+
 - Python
-- Flask
-- HTML5
-- CSS3
-- Vanilla JavaScript
-- Plotly.js
+- FastAPI
+- Uvicorn
+- Pydantic
+- Jinja2
+
+The supplied `app.py` creates a FastAPI application and mounts the static directory and Jinja2 templates. fileciteturn13file1L664-L685
+
+### Machine Learning
+
 - Pandas
 - NumPy
 - Scikit-learn
 - Joblib
 
+The application loads the saved model bundle from `models/final_model.joblib` and uses its model, scaler, selected features, and high-consumption threshold. fileciteturn13file1L688-L695
+
+### Frontend
+
+- HTML5
+- CSS3
+- Vanilla JavaScript
+- Plotly.js
+- Font Awesome
+- Google Fonts
+
+The HTML page loads Plotly.js, Font Awesome, the project CSS, and the two JavaScript files from the `static/` directory. fileciteturn13file3L901-L914
+
 ---
 
 ## Web Application
 
-The primary interface is a Flask application served at the root URL. It uses
-HTML, CSS, Vanilla JavaScript, and Plotly.js. Dashboard values and charts are
-derived from the historical dataset; the prediction form sends the real sensor
-inputs to the saved model bundle. Date and time are converted server-side to
-the four engineered time features used during training.
+The application is a FastAPI-based web dashboard for historical household energy analysis and ML-powered prediction.
 
+The backend serves `index.html` at `/`, exposes the static assets under `/static`, and loads the Jinja2 templates from the `templates/` directory. fileciteturn13file1L679-L685 fileciteturn13file1L754-L756
+
+The frontend contains the following main sections:
+
+- Dashboard
+- Prediction
+- Analytics
+- AI Insights
+- Model Performance
+- Settings
+
+These sections are defined directly in the supplied HTML interface. fileciteturn13file3L924-L930
+
+The frontend communicates with the backend using JavaScript `fetch()` requests. The prediction form sends a POST request to `/api/predict`, while dashboard and settings data are loaded from API endpoints. fileciteturn12file2L70-L108 fileciteturn12file2L121-L155
+
+### Prediction Flow
+
+1. The user selects a date and time.
+2. The user enters the required environmental and lighting values.
+3. The frontend sends the values to `/api/predict`.
+4. The backend derives `hour`, `day_of_week`, `month`, and `is_weekend` from the selected date and time.
+5. The saved scaler and model are used to generate the prediction.
+6. The prediction is returned in Wh and kWh.
+7. The result is labeled `High` or `Normal` according to the saved threshold.
+8. The frontend displays the result and generates an insight/recommendation.
+
+The backend implementation performs these steps directly in the prediction route. fileciteturn13file1L779-L800
+
+### Analytics
+
+The backend currently exposes:
+
+```text
+/api/analytics/summary
+/api/analytics/hourly
+/api/analytics/daily
+/api/analytics/weekly
+/api/analytics/monthly
+/api/analytics/heatmap
+/api/analytics/peak-hours
+```
+
+These endpoints calculate historical consumption summaries, hourly and daily patterns, weekly and monthly averages, a day-versus-hour heatmap, and the top three peak hours. fileciteturn13file1L803-L848
+
+### Model Performance
+
+The application exposes:
+
+```text
+/api/model/performance
+```
+
+It evaluates the saved model on the last 20% of the historical data and returns MAE, RMSE, R², MAPE, and subsets of actual versus predicted values for visualization. fileciteturn13file1L851-L869
+
+### Model Comparison
+
+The current backend exposes:
+
+```text
+/api/model/comparison
+```
+
+but returns `available: false` because comparison results were not saved with the project. fileciteturn13file1L872-L875
+
+---
 
 ## Installation
 
@@ -297,6 +367,8 @@ python -m pip install --upgrade pip
 python -m pip install -r requirements.txt
 ```
 
+The current dependency file includes Pandas, NumPy, Scikit-learn, Joblib, FastAPI, Uvicorn, and Jinja2. fileciteturn13file2L885-L891
+
 ---
 
 ## How to Run
@@ -321,39 +393,45 @@ Linux/macOS:
 source .venv/bin/activate
 ```
 
-### 2. Run the Flask Web Application
+### 2. Start the FastAPI Application with Uvicorn
+
+Run:
 
 ```bash
-python app.py
+python -m uvicorn app:app --reload
 ```
 
-The Flask application will normally be available at:
+The project is designed around FastAPI and Uvicorn. The supplied `app.py` creates `app = FastAPI(...)`, while `requirements.txt` includes both FastAPI and Uvicorn. fileciteturn13file1L672-L685 fileciteturn13file2L889-L891
+
+Open:
 
 ```text
-http://127.0.0.1:5000
+http://127.0.0.1:8000
 ```
 
-Open the local address shown by Flask in your browser.
+### 3. FastAPI Interactive API Documentation
 
-### 3. Train the Model
+FastAPI provides interactive API documentation at:
+
+```text
+http://127.0.0.1:8000/docs
+```
+
+A ReDoc version is also available at:
+
+```text
+http://127.0.0.1:8000/redoc
+```
+
+### 4. Train the Model
 
 ```bash
 python src/train.py
 ```
 
-The training script:
+The training pipeline prepares the data, performs feature engineering and model training, evaluates the models, and saves the deployment artifacts used by the application.
 
-- Loads `data/raw/energydata_complete.csv`
-- Cleans and preprocesses the data
-- Creates time-based features
-- Selects important features
-- Trains the regression models
-- Evaluates the models
-- Performs hyperparameter tuning
-- Saves the cleaned dataset
-- Saves the trained model artifact
-
-### 4. Run the Notebooks
+### 5. Run the Notebooks
 
 Start Jupyter:
 
@@ -361,46 +439,16 @@ Start Jupyter:
 jupyter notebook
 ```
 
-Then open one of:
+Then open:
 
 ```text
 notebooks/smart_energy_ai.ipynb
-notebooks/SMART_ENERGY.ipynb
 ```
 
-### 5. Quick Prediction from Python
-
-The prediction utility is located at:
+or:
 
 ```text
-src/predict.py
-```
-
-Example:
-
-```python
-from src.predict import predict
-
-result = predict({
-    "T3": 21.0,
-    "RH_3": 39.0,
-    "Press_mm_hg": 755.0,
-    "T8": 21.5,
-    "RH_5": 50.0,
-    "RH_2": 40.0,
-    "lights": 0.0,
-    "RH_4": 39.0,
-    "T5": 19.5,
-    "RH_6": 80.0,
-    "RH_1": 40.0,
-    "RH_8": 42.0,
-    "hour": 18,
-    "day_of_week": 1,
-    "month": 3,
-    "is_weekend": 0
-})
-
-print(result)
+notebooks/SMART_ENERGY.ipynb
 ```
 
 ---
@@ -476,7 +524,7 @@ The Settings page provides the available application and project information.
 flowchart LR
     User[User] --> GUI[Web GUI]
     GUI --> JS[Vanilla JavaScript]
-    JS --> Flask[Flask Backend]
+    JS --> API[FastAPI Backend]
     API --> Prediction[Prediction Logic]
     API --> Analytics[Analytics Endpoints]
     Prediction --> Model[Saved ML Model]
@@ -507,7 +555,7 @@ flowchart TD
 
 ## API Overview
 
-The Flask backend provides the application's prediction and analytics functionality.
+The FastAPI backend provides the application's prediction and analytics functionality.
 
 The current application includes functionality for:
 
@@ -520,7 +568,7 @@ The current application includes functionality for:
 - Monthly consumption analytics
 - Model-performance evaluation
 
-Flask also provides automatically generated interactive API documentation at:
+FastAPI provides automatically generated interactive API documentation at:
 
 ```text
 http://127.0.0.1:5000
@@ -538,7 +586,7 @@ models/
 └── scaler.joblib
 ```
 
-The application loads the saved model artifacts when the Flask application starts and uses them for prediction requests.
+The application loads the saved model bundle when the FastAPI application starts and uses it for prediction requests.
 
 The prediction workflow derives the required time-based features from the selected date and time before passing the prepared inputs to the model.
 
@@ -580,7 +628,6 @@ Additional project documentation and generated outputs are organized under:
 ```text
 docs/
 reports/
-PROJECT_PROGRESS.md
 ```
 
 The application screenshots are stored specifically under:
@@ -609,7 +656,7 @@ All screenshot references in this README use relative repository paths. This mea
 - Model evaluation
 - Best-model selection
 - Saved model artifacts
-- Flask backend
+- FastAPI backend
 - HTML/CSS/Vanilla JavaScript web interface
 - Plotly.js visualizations
 - Energy-consumption prediction
