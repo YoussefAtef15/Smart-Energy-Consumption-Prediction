@@ -208,7 +208,6 @@ Smart-Energy-AI/
 │   ├── final_model.joblib
 │   └── scaler.joblib
 ├── notebooks/
-│   ├── SMART_ENERGY.ipynb
 │   └── smart_energy_ai.ipynb
 ├── reports/
 ├── src/
