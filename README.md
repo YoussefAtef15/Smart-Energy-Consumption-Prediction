@@ -189,32 +189,65 @@ Binary task: predict whether consumption exceeds **210 Wh** (90th percentile of 
 
 ## Project Structure
 
-```
+```text
 Smart-Energy-AI/
 ├── data/
 │   ├── processed/
-│   │   └── energydata_cleaned.csv     # Cleaned dataset (29 cols, 19,735 rows)
+│   │   └── energydata_cleaned.csv
 │   └── raw/
-│       └── energydata_complete.csv    # Original raw dataset (do not modify)
+│       └── energydata_complete.csv
+├── docs/
+│   └── screenshots/
+│       ├── ai-insights.png
+│       ├── dashboard.png
+│       ├── model-performance.png
+│       ├── prediction-result.png
+│       ├── prediction.png
+│       └── settings.png
 ├── models/
-│   └── final_model.joblib             # Saved model + scaler + feature list
+│   ├── final_model.joblib
+│   └── scaler.joblib
 ├── notebooks/
-│   └── smart_energy_ai.ipynb          # Complete end-to-end notebook
-├── reports/                           # Report outputs (plots, summaries)
+│   ├── SMART_ENERGY.ipynb
+│   └── smart_energy_ai.ipynb
+├── reports/
 ├── src/
-│   ├── data_preprocessing.py          # Data loading and cleaning utilities
-│   ├── train.py                       # Training script (CLI runnable)
-│   └── predict.py                     # Prediction utility
-├── app.py                             # FastAPI REST API
-├── requirements.txt                   # Python dependencies
-└── README.md                          # This file
+│   ├── data_preprocessing.py
+│   ├── predict.py
+│   └── train.py
+├── static/
+│   ├── css/
+│   │   └── style.css
+│   └── js/
+│       ├── app.js
+│       └── charts.js
+├── templates/
+│   └── index.html
+├── README.md
+├── app.py
+└── requirements.txt
 ```
+
+---
+
+## Technology Stack
+
+- Python
+- Flask
+- HTML5
+- CSS3
+- Vanilla JavaScript
+- Plotly.js
+- Pandas
+- NumPy
+- Scikit-learn
+- Joblib
 
 ---
 
 ## Web Application
 
-The primary interface is a FastAPI application served at the root URL. It uses
+The primary interface is a Flask application served at the root URL. It uses
 HTML, CSS, Vanilla JavaScript, and Plotly.js. Dashboard values and charts are
 derived from the historical dataset; the prediction form sends the real sensor
 inputs to the saved model bundle. Date and time are converted server-side to
@@ -223,100 +256,152 @@ the four engineered time features used during training.
 
 ## Installation
 
-```bash
-# Create an isolated project environment
-python -m venv .venv
+### 1. Clone the Repository
 
-# Install the web-app dependencies (Windows/MSYS2 setup)
-.\.venv\bin\python.exe -m pip install -r requirements.txt
+```bash
+git clone https://github.com/YoussefAtef15/Smart-Energy-Consumption-Prediction.git
+cd Smart-Energy-Consumption-Prediction
+```
+
+### 2. Create a Virtual Environment
+
+Windows PowerShell:
+
+```powershell
+python -m venv .venv
+.venv\Scripts\Activate.ps1
+```
+
+Windows Command Prompt:
+
+```cmd
+python -m venv .venv
+.venv\Scripts\activate
+```
+
+Linux/macOS:
+
+```bash
+python3 -m venv .venv
+source .venv/bin/activate
+```
+
+### 3. Upgrade pip
+
+```bash
+python -m pip install --upgrade pip
+```
+
+### 4. Install Dependencies
+
+```bash
+python -m pip install -r requirements.txt
 ```
 
 ---
 
 ## How to Run
 
-### 1. Run the Notebooks
+### 1. Activate the Virtual Environment
 
-```bash
-jupyter notebook notebooks/smart_energy_ai.ipynb
+Windows PowerShell:
+
+```powershell
+.venv\Scripts\Activate.ps1
 ```
 
-This notebook runs the full end-to-end pipeline including data cleaning, EDA, feature engineering, model training, evaluation, and deployment.
+Windows Command Prompt:
 
-### 2. Train the Model from Command Line
+```cmd
+.venv\Scripts\activate
+```
+
+Linux/macOS:
+
+```bash
+source .venv/bin/activate
+```
+
+### 2. Run the Flask Web Application
+
+```bash
+python app.py
+```
+
+The Flask application will normally be available at:
+
+```text
+http://127.0.0.1:5000
+```
+
+Open the local address shown by Flask in your browser.
+
+### 3. Train the Model
 
 ```bash
 python src/train.py
 ```
 
-This script:
+The training script:
+
 - Loads `data/raw/energydata_complete.csv`
 - Cleans and preprocesses the data
-- Saves `data/processed/energydata_cleaned.csv`
-- Trains three models and evaluates them
-- Saves `models/final_model.joblib`
+- Creates time-based features
+- Selects important features
+- Trains the regression models
+- Evaluates the models
+- Performs hyperparameter tuning
+- Saves the cleaned dataset
+- Saves the trained model artifact
 
-### 3. Run the FastAPI Web Application
+### 4. Run the Notebooks
 
-```bash
-.\.venv\bin\python.exe -m uvicorn app:app --reload --port 8000
-```
-
-Open **http://localhost:8000** for the dashboard. The API documentation is
-available at **http://localhost:8000/docs**.
-
-**Example API request:**
+Start Jupyter:
 
 ```bash
-curl -X POST http://localhost:8000/predict \
-  -H "Content-Type: application/json" \
-  -d '{
-    "T3": 21.0, "RH_3": 39.0, "Press_mm_hg": 755.0, "T8": 21.5,
-    "RH_5": 50.0, "RH_2": 40.0, "lights": 0.0, "RH_4": 39.0,
-    "T5": 19.5, "Tdewpoint": 4.0, "RH_6": 80.0, "RH_1": 40.0,
-    "RH_8": 42.0, "RH_9": 41.0, "T7": 20.5,
-    "hour": 18, "day_of_week": 1, "month": 3, "is_weekend": 0
-  }'
+jupyter notebook
 ```
 
-**Example response:**
+Then open one of:
 
-```json
-{
-  "predicted_appliances_wh": 63.69,
-  "high_consumption_alert": false,
-  "threshold_wh": 210.0
-}
+```text
+notebooks/smart_energy_ai.ipynb
+notebooks/SMART_ENERGY.ipynb
 ```
 
-### 4. Run the Streamlit GUI
+### 5. Quick Prediction from Python
 
-```bash
-streamlit run streamlit_app.py
+The prediction utility is located at:
+
+```text
+src/predict.py
 ```
 
-Then open **http://localhost:8501** in your browser.
-
-The GUI provides:
-- Input sliders/fields for all 19 features (organized by category)
-- A **Predict** button
-- Predicted energy consumption in Wh
-- Consumption status: Normal or High
-
-### 5. Run a Quick Prediction from Python
+Example:
 
 ```python
 from src.predict import predict
 
 result = predict({
-    "T3": 21.0, "RH_3": 39.0, "Press_mm_hg": 755.0, "T8": 21.5,
-    "RH_5": 50.0, "RH_2": 40.0, "lights": 0.0, "RH_4": 39.0,
-    "T5": 19.5, "Tdewpoint": 4.0, "RH_6": 80.0, "RH_1": 40.0,
-    "RH_8": 42.0, "RH_9": 41.0, "T7": 20.5,
-    "hour": 18, "day_of_week": 1, "month": 3, "is_weekend": 0
+    "T3": 21.0,
+    "RH_3": 39.0,
+    "Press_mm_hg": 755.0,
+    "T8": 21.5,
+    "RH_5": 50.0,
+    "RH_2": 40.0,
+    "lights": 0.0,
+    "RH_4": 39.0,
+    "T5": 19.5,
+    "RH_6": 80.0,
+    "RH_1": 40.0,
+    "RH_8": 42.0,
+    "hour": 18,
+    "day_of_week": 1,
+    "month": 3,
+    "is_weekend": 0
 })
+
 print(result)
-# {'predicted_wh': 63.69, 'is_high': False, 'threshold_wh': 210.0}
 ```
 
 ---
@@ -392,7 +477,7 @@ The Settings page provides the available application and project information.
 flowchart LR
     User[User] --> GUI[Web GUI]
     GUI --> JS[Vanilla JavaScript]
-    JS --> API[FastAPI Backend]
+    JS --> Flask[Flask Backend]
     API --> Prediction[Prediction Logic]
     API --> Analytics[Analytics Endpoints]
     Prediction --> Model[Saved ML Model]
@@ -423,7 +508,7 @@ flowchart TD
 
 ## API Overview
 
-The FastAPI backend provides the application's prediction and analytics functionality.
+The Flask backend provides the application's prediction and analytics functionality.
 
 The current application includes functionality for:
 
@@ -436,10 +521,10 @@ The current application includes functionality for:
 - Monthly consumption analytics
 - Model-performance evaluation
 
-FastAPI also provides automatically generated interactive API documentation at:
+Flask also provides automatically generated interactive API documentation at:
 
 ```text
-http://localhost:8000/docs
+http://127.0.0.1:5000
 ```
 
 ---
@@ -454,7 +539,7 @@ models/
 └── scaler.joblib
 ```
 
-The application loads the saved model artifacts when the FastAPI application starts and uses them for prediction requests.
+The application loads the saved model artifacts when the Flask application starts and uses them for prediction requests.
 
 The prediction workflow derives the required time-based features from the selected date and time before passing the prepared inputs to the model.
 
@@ -470,13 +555,11 @@ The main end-to-end notebook is:
 notebooks/smart_energy_ai.ipynb
 ```
 
-The supporting notebooks cover:
+The notebooks currently included in the repository are:
 
 ```text
-01_data_understanding.ipynb
-02_eda.ipynb
-03_model_training.ipynb
-04_model_evaluation.ipynb
+notebooks/SMART_ENERGY.ipynb
+notebooks/smart_energy_ai.ipynb
 ```
 
 The source implementation is organized into:
@@ -527,7 +610,7 @@ All screenshot references in this README use relative repository paths. This mea
 - Model evaluation
 - Best-model selection
 - Saved model artifacts
-- FastAPI backend
+- Flask backend
 - HTML/CSS/Vanilla JavaScript web interface
 - Plotly.js visualizations
 - Energy-consumption prediction
